@@ -13,24 +13,36 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'An auction is already in progress' });
   }
 
-  const { teamId, startingBid } = req.body || {};
+  const { teamId, startingBid, random } = req.body || {};
   const teams = await getTeams();
-  const team = teams.find(t => t.id === teamId);
-  if (!team || team.status === 'sold') {
-    return res.status(400).json({ error: 'Team not available' });
+  let team;
+
+  if (random) {
+    // Random nomination — pick a random available team
+    const available = teams.filter(t => t.status === 'available');
+    if (available.length === 0) {
+      return res.status(400).json({ error: 'No teams remaining' });
+    }
+    team = available[Math.floor(Math.random() * available.length)];
+  } else {
+    team = teams.find(t => t.id === teamId);
+    if (!team || team.status === 'sold') {
+      return res.status(400).json({ error: 'Team not available' });
+    }
   }
 
   const settings = await getSettings();
   const start = Math.max(1, Number(startingBid) || 1);
 
   // Update team status
-  team.status = 'active';
+  const idx = teams.findIndex(t => t.id === team.id);
+  teams[idx].status = 'active';
   await setTeams(teams);
 
   // Set auction state
   await setAuction({
     status: 'active',
-    currentTeamId: teamId,
+    currentTeamId: team.id,
     highBid: 0,
     highBidderId: null,
     highBidderName: '',
@@ -40,5 +52,5 @@ module.exports = async function handler(req, res) {
     startingBid: start
   });
 
-  res.json({ success: true });
+  res.json({ success: true, team });
 };

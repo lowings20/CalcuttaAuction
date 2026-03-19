@@ -1,1 +1,7 @@
-node_modules/\ncalcutta.db\n*.log
+node_modules/
+calcutta.db
+calcutta.db-shm
+calcutta.db-wal
+*.log
+.vercel
+.env*.local

@@ -470,10 +470,10 @@ async function nominateTeam() {
   toggleAdmin();
 }
 
-async function pauseAuction() { await api('pause'); }
-async function resumeAuction() { await api('resume'); }
+async function pauseAuction() { await api('auction-control', { action: 'pause' }); }
+async function resumeAuction() { await api('auction-control', { action: 'resume' }); }
 async function skipAuction() {
-  if (confirm('Cancel the current auction?')) await api('skip');
+  if (confirm('Cancel the current auction?')) await api('auction-control', { action: 'skip' });
 }
 
 // Edit teams
@@ -500,7 +500,7 @@ async function saveTeamEdit(id, btn) {
   const region = row.querySelector('.edit-region').value;
   const name = row.querySelector('.edit-name').value.trim();
   if (!name) return;
-  const res = await api('update-team', { id, name, seed, region });
+  const res = await api('admin', { action: 'update-team', id, name, seed, region });
   if (res.success) toast('Team updated', 'success');
 }
 
@@ -539,7 +539,7 @@ async function importTeams() {
   }
 
   if (confirm(`Import ${teamsData.length} teams? This will replace all existing teams and bids.`)) {
-    const res = await api('import-teams', teamsData);
+    const res = await api('admin', { action: 'import-teams', teams: teamsData });
     if (res.success) toast(`Imported ${res.count} teams`, 'success');
   }
 }
@@ -548,14 +548,14 @@ async function importTeams() {
 async function saveSettings() {
   const timer = parseInt(document.getElementById('setting-timer').value) || 15;
   const increment = parseInt(document.getElementById('setting-increment').value) || 1;
-  const res = await api('settings', { timerDuration: timer, bidIncrement: increment });
+  const res = await api('admin', { action: 'settings', timerDuration: timer, bidIncrement: increment });
   if (res.success) toast('Settings saved', 'success');
 }
 
 async function resetAll() {
   if (confirm('Reset ALL auctions? This will clear all bids and team ownership. This cannot be undone.')) {
     if (confirm('Are you absolutely sure?')) {
-      await api('reset');
+      await api('admin', { action: 'reset' });
       toast('All auctions reset', 'info');
     }
   }
@@ -674,7 +674,7 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
 // RANDOM NOMINATE
 // ================================================================
 async function randomNominate() {
-  const res = await api('random-nominate', { startingBid: 1 });
+  const res = await api('nominate', { random: true, startingBid: 1 });
   if (res.success && res.team) {
     toast(`Auctioning: #${res.team.seed} ${res.team.name} (${res.team.region})`, 'info');
   }
