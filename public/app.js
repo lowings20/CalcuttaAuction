@@ -1,9 +1,8 @@
 /* ================================================================
-   Calcutta Auction 2026 — Client
+   Calcutta Auction 2026 — Client (HTTP Polling)
    ================================================================ */
 
-const socket = io();
-
+let authToken = null;
 let currentUser = null;
 let teams = [];
 let participants = [];
@@ -12,6 +11,11 @@ let auctionState = null;
 let selectedNominateTeamId = null;
 let timerDuration = 15;
 let bidIncrement = 1;
+let pollInterval = null;
+let clientTimerInterval = null;
+let prevAuctionStatus = 'waiting';
+let prevHighBid = 0;
+let serverTimeOffset = 0; // serverTime - clientTime
 
 // Palette for avatars
 const COLORS = [
@@ -25,85 +29,65 @@ function avatarColor(name) {
 }
 
 // ================================================================
+// API HELPER
+// ================================================================
+async function api(endpoint, data = null) {
+  const opts = { headers: {} };
+  if (authToken) opts.headers['Authorization'] = `Bearer ${authToken}`;
+  if (data !== null) {
+    opts.method = 'POST';
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(data);
+  }
+  try {
+    const res = await fetch(`/api/${endpoint}`, opts);
+    const json = await res.json();
+    if (!res.ok && json.error) toast(json.error, 'error');
+    return json;
+  } catch (e) {
+    console.error('API error:', e);
+    return { error: e.message };
+  }
+}
+
+// ================================================================
 // LOGIN
 // ================================================================
-document.getElementById('login-form').addEventListener('submit', (e) => {
+document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('login-name').value.trim();
   if (!name) return;
 
-  socket.emit('auth', name, (res) => {
-    if (res.error) {
-      document.getElementById('login-error').textContent = res.error;
-      return;
+  const res = await api('auth', { name });
+  if (res.error) {
+    document.getElementById('login-error').textContent = res.error;
+    return;
+  }
+
+  authToken = res.token;
+  currentUser = res.user;
+  document.getElementById('user-badge').textContent = currentUser.name;
+  document.getElementById('login-view').classList.remove('active');
+  document.getElementById('main-view').classList.add('active');
+
+  if (res.state.serverTime) serverTimeOffset = res.state.serverTime - Date.now();
+  handleStateSync(res.state);
+  startPolling();
+});
+
+// ================================================================
+// POLLING
+// ================================================================
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(async () => {
+    const state = await api('state');
+    if (!state.error) {
+      if (state.serverTime) serverTimeOffset = state.serverTime - Date.now();
+      handleStateSync(state);
     }
-    currentUser = res.user;
-    document.getElementById('user-badge').textContent = currentUser.name;
-    document.getElementById('login-view').classList.remove('active');
-    document.getElementById('main-view').classList.add('active');
-    handleStateSync(res.state);
-  });
-});
-
-// ================================================================
-// SOCKET EVENTS
-// ================================================================
-socket.on('state:sync', handleStateSync);
-socket.on('users:online', (users) => { onlineUsers = users; renderParticipants(); });
-socket.on('settings:update', (s) => {
-  bidIncrement = s.bidIncrement;
-  timerDuration = s.timerDuration;
-  document.getElementById('setting-increment').value = bidIncrement;
-  document.getElementById('setting-timer').value = timerDuration;
-});
-
-socket.on('auction:start', (data) => {
-  auctionState = { status: 'active', team: data.team, startingBid: data.startingBid, highBid: 0, highBidderName: '', bidHistory: [] };
-  // Update team in local list
-  const idx = teams.findIndex(t => t.id === data.team.id);
-  if (idx >= 0) teams[idx].status = 'active';
-  renderTeams();
-  renderAuction();
-  toast(`Bidding open: ${data.team.seed} ${data.team.name}`, 'info');
-});
-
-socket.on('auction:bid', (data) => {
-  if (!auctionState) return;
-  auctionState.highBid = data.amount;
-  auctionState.highBidderName = data.userName;
-  auctionState.bidHistory = data.bidHistory;
-  renderBidDisplay();
-  renderBidHistory();
-  renderQuickBids();
-});
-
-socket.on('auction:timer', (seconds) => {
-  updateTimer(seconds);
-});
-
-socket.on('auction:sold', (data) => {
-  auctionState = { status: 'sold', team: data.team, winnerName: data.winnerName, amount: data.amount };
-  renderAuction();
-  toast(`${data.team.name} sold to ${data.winnerName} for $${data.amount}`, 'success');
-});
-
-socket.on('auction:cancelled', (data) => {
-  auctionState = { status: 'waiting' };
-  renderAuction();
-  toast(data.reason || 'Auction cancelled', 'info');
-});
-
-socket.on('auction:paused', (seconds) => {
-  if (auctionState) auctionState.status = 'paused';
-  document.getElementById('auction-paused-overlay').style.display = 'flex';
-});
-
-socket.on('auction:resumed', () => {
-  if (auctionState) auctionState.status = 'active';
-  document.getElementById('auction-paused-overlay').style.display = 'none';
-});
-
-socket.on('error:message', (msg) => toast(msg, 'error'));
+  }, 1500);
+}
 
 // ================================================================
 // STATE SYNC
@@ -112,16 +96,52 @@ function handleStateSync(state) {
   teams = state.teams;
   participants = state.participants;
   onlineUsers = state.onlineUsers;
-  auctionState = state.auction;
-  bidIncrement = state.auction.bidIncrement || 1;
-  timerDuration = state.auction.timerDuration || 15;
 
-  if (auctionState.status === 'active' || auctionState.status === 'paused') {
-    const team = teams.find(t => t.id === auctionState.currentTeamId);
-    if (team) {
-      auctionState.team = team;
-      auctionState.highBidderName = auctionState.highBidderName || '';
+  const newAuction = state.auction;
+  bidIncrement = newAuction.bidIncrement || 1;
+  timerDuration = newAuction.timerDuration || 15;
+
+  // Detect transitions for toasts
+  if (newAuction.status === 'sold' && prevAuctionStatus === 'active') {
+    const soldName = newAuction.soldTeamName || '';
+    const winner = newAuction.soldWinnerName || newAuction.highBidderName || '';
+    const amount = newAuction.soldAmount || newAuction.highBid || 0;
+    toast(`${soldName} sold to ${winner} for $${amount}`, 'success');
+  }
+  if (newAuction.status === 'cancelled' && prevAuctionStatus !== 'cancelled' && prevAuctionStatus !== 'waiting') {
+    toast(newAuction.cancelReason || 'Auction cancelled', 'info');
+  }
+  if (newAuction.status === 'active' && newAuction.highBid > prevHighBid && prevHighBid > 0) {
+    // New bid came in from someone else - handled via display update
+  }
+
+  prevAuctionStatus = newAuction.status;
+  prevHighBid = newAuction.highBid || 0;
+
+  // Build auction state with team info
+  if (newAuction.status === 'active' || newAuction.status === 'paused') {
+    const team = teams.find(t => t.id === newAuction.currentTeamId);
+    auctionState = { ...newAuction, team };
+
+    // Start client-side timer from deadline
+    if (newAuction.status === 'active' && newAuction.timerDeadline) {
+      startClientTimer(newAuction.timerDeadline);
+    } else if (newAuction.status === 'paused') {
+      stopClientTimer();
+      const remaining = Math.max(0, Math.ceil((newAuction.pausedRemaining || 0) / 1000));
+      updateTimer(remaining);
     }
+  } else if (newAuction.status === 'sold') {
+    auctionState = {
+      ...newAuction,
+      team: teams.find(t => t.id === newAuction.currentTeamId),
+      winnerName: newAuction.soldWinnerName || newAuction.highBidderName,
+      amount: newAuction.soldAmount || newAuction.highBid
+    };
+    stopClientTimer();
+  } else {
+    auctionState = { status: 'waiting' };
+    stopClientTimer();
   }
 
   renderTeams();
@@ -133,6 +153,26 @@ function handleStateSync(state) {
 
   document.getElementById('setting-increment').value = bidIncrement;
   document.getElementById('setting-timer').value = timerDuration;
+}
+
+// ================================================================
+// CLIENT-SIDE TIMER
+// ================================================================
+function startClientTimer(deadline) {
+  stopClientTimer();
+  clientTimerInterval = setInterval(() => {
+    const adjustedNow = Date.now() + serverTimeOffset;
+    const remaining = Math.max(0, Math.ceil((deadline - adjustedNow) / 1000));
+    updateTimer(remaining);
+    if (remaining <= 0) stopClientTimer();
+  }, 200);
+}
+
+function stopClientTimer() {
+  if (clientTimerInterval) {
+    clearInterval(clientTimerInterval);
+    clientTimerInterval = null;
+  }
 }
 
 // ================================================================
@@ -190,7 +230,6 @@ function renderParticipants() {
   const container = document.getElementById('participants-list');
   const onlineIds = new Set(onlineUsers.map(u => u.id));
 
-  // Merge participants with online status, sort by total spent desc
   const sorted = [...participants].sort((a, b) => b.total_spent - a.total_spent);
 
   let html = '';
@@ -208,7 +247,6 @@ function renderParticipants() {
       </div>`;
   }
 
-  // Show online users who haven't bid yet
   for (const u of onlineUsers) {
     if (!participants.find(p => p.id === u.id)) {
       const color = avatarColor(u.name);
@@ -251,8 +289,14 @@ function renderAuction() {
   if (auctionState.status === 'sold') {
     soldEl.style.display = 'flex';
     document.getElementById('sold-team-name').textContent = `${auctionState.team?.seed || ''} ${auctionState.team?.name || ''}`;
-    document.getElementById('sold-winner').textContent = auctionState.winnerName;
-    document.getElementById('sold-amount').textContent = `$${auctionState.amount}`;
+    document.getElementById('sold-winner').textContent = auctionState.winnerName || '';
+    document.getElementById('sold-amount').textContent = `$${auctionState.amount || 0}`;
+    return;
+  }
+
+  if (auctionState.status === 'cancelled') {
+    waiting.style.display = 'flex';
+    updatePot();
     return;
   }
 
@@ -292,7 +336,6 @@ function renderQuickBids() {
     current + inc * 10
   ].filter(a => a > current);
 
-  // Deduplicate
   const unique = [...new Set(amounts)].slice(0, 4);
   container.innerHTML = unique.map(a =>
     `<button class="btn btn-primary" onclick="placeBidAmount(${a})">$${a}</button>`
@@ -312,7 +355,7 @@ function renderBidHistory() {
 }
 
 // ================================================================
-// TIMER
+// TIMER DISPLAY
 // ================================================================
 function updateTimer(seconds) {
   const text = document.getElementById('timer-text');
@@ -320,7 +363,7 @@ function updateTimer(seconds) {
   if (!text || !circle) return;
 
   text.textContent = Math.max(0, seconds);
-  const circumference = 2 * Math.PI * 54; // r=54
+  const circumference = 2 * Math.PI * 54;
   const pct = seconds / timerDuration;
   circle.style.strokeDashoffset = circumference * (1 - pct);
 
@@ -336,19 +379,18 @@ function updateTimer(seconds) {
 // ================================================================
 // BIDDING
 // ================================================================
-function placeBidAmount(amount) {
-  socket.emit('bid', { amount });
+async function placeBidAmount(amount) {
+  await api('bid', { amount });
 }
 
-function placeBid() {
+async function placeBid() {
   const input = document.getElementById('custom-bid');
   const val = parseInt(input.value);
   if (!val || val <= 0) return;
-  socket.emit('bid', { amount: val });
+  await api('bid', { amount: val });
   input.value = '';
 }
 
-// Enter key on custom bid
 document.getElementById('custom-bid').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') placeBid();
 });
@@ -407,17 +449,17 @@ function selectNominateTeam(id, el) {
   document.getElementById('nominate-controls').style.display = 'flex';
 }
 
-function nominateTeam() {
+async function nominateTeam() {
   if (!selectedNominateTeamId) return;
   const startingBid = parseInt(document.getElementById('starting-bid').value) || 1;
-  socket.emit('nominate', { teamId: selectedNominateTeamId, startingBid });
+  await api('nominate', { teamId: selectedNominateTeamId, startingBid });
   toggleAdmin();
 }
 
-function pauseAuction() { socket.emit('pause'); }
-function resumeAuction() { socket.emit('resume'); }
-function skipAuction() {
-  if (confirm('Cancel the current auction?')) socket.emit('skip');
+async function pauseAuction() { await api('pause'); }
+async function resumeAuction() { await api('resume'); }
+async function skipAuction() {
+  if (confirm('Cancel the current auction?')) await api('skip');
 }
 
 // Edit teams
@@ -438,19 +480,18 @@ function renderEditTeams() {
   ).join('');
 }
 
-function saveTeamEdit(id, btn) {
+async function saveTeamEdit(id, btn) {
   const row = btn.closest('.edit-team-row');
   const seed = parseInt(row.querySelector('.edit-seed').value);
   const region = row.querySelector('.edit-region').value;
   const name = row.querySelector('.edit-name').value.trim();
   if (!name) return;
-  socket.emit('update-team', { id, name, seed, region }, (res) => {
-    if (res.success) toast('Team updated', 'success');
-  });
+  const res = await api('update-team', { id, name, seed, region });
+  if (res.success) toast('Team updated', 'success');
 }
 
 // Import
-function importTeams() {
+async function importTeams() {
   const text = document.getElementById('import-textarea').value.trim();
   if (!text) return;
 
@@ -462,14 +503,12 @@ function importTeams() {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Region header
     const regionMatch = trimmed.match(/^\[(.+)\]$/);
     if (regionMatch) {
       currentRegion = regionMatch[1].trim();
       continue;
     }
 
-    // Team line: "1 Duke" or "1. Duke"
     const teamMatch = trimmed.match(/^(\d+)\.?\s+(.+)$/);
     if (teamMatch) {
       teamsData.push({
@@ -486,25 +525,23 @@ function importTeams() {
   }
 
   if (confirm(`Import ${teamsData.length} teams? This will replace all existing teams and bids.`)) {
-    socket.emit('import-teams', teamsData, (res) => {
-      if (res.error) toast(res.error, 'error');
-      else toast(`Imported ${res.count} teams`, 'success');
-    });
+    const res = await api('import-teams', teamsData);
+    if (res.success) toast(`Imported ${res.count} teams`, 'success');
   }
 }
 
 // Settings
-function saveSettings() {
+async function saveSettings() {
   const timer = parseInt(document.getElementById('setting-timer').value) || 15;
   const increment = parseInt(document.getElementById('setting-increment').value) || 1;
-  socket.emit('update-settings', { timerDuration: timer, bidIncrement: increment });
-  toast('Settings saved', 'success');
+  const res = await api('settings', { timerDuration: timer, bidIncrement: increment });
+  if (res.success) toast('Settings saved', 'success');
 }
 
-function resetAll() {
+async function resetAll() {
   if (confirm('Reset ALL auctions? This will clear all bids and team ownership. This cannot be undone.')) {
     if (confirm('Are you absolutely sure?')) {
-      socket.emit('reset-all');
+      await api('reset');
       toast('All auctions reset', 'info');
     }
   }
