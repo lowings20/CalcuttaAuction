@@ -1,0 +1,14 @@
+{
+  "name": "calcutta-auction",
+  "version": "1.0.0",
+  "description": "Calcutta Auction for 2026 NCAA Men's Basketball Tournament",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0"
+  }
+}

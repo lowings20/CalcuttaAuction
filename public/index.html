@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calcutta Auction 2026</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ============ LOGIN ============ -->
+  <div id="login-view" class="view active">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-icon">&#127936;</div>
+        <h1>Calcutta Auction</h1>
+        <p class="subtitle">2026 NCAA Men's Basketball Tournament</p>
+      </div>
+      <form id="login-form">
+        <input type="text" id="login-name" placeholder="Enter your name" autocomplete="off" maxlength="30" required>
+        <button type="submit" class="btn btn-primary btn-lg">Join Auction</button>
+      </form>
+      <div id="login-error" class="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <div id="main-view" class="view">
+    <!-- Header -->
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <span class="logo-sm">&#127936;</span>
+        <h2>Calcutta Auction <span class="year">2026</span></h2>
+      </div>
+      <div class="top-bar-right">
+        <span id="user-badge" class="user-badge"></span>
+        <button id="btn-results" class="btn btn-sm btn-outline" onclick="toggleResults()">Results</button>
+        <button id="btn-admin" class="btn btn-sm btn-outline" onclick="toggleAdmin()">Admin</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Left: Teams -->
+      <aside class="panel panel-teams" id="teams-panel">
+        <div class="panel-header">
+          <h3>Teams</h3>
+          <div class="team-filters">
+            <button class="filter-btn active" data-region="all">All</button>
+            <button class="filter-btn" data-region="East">E</button>
+            <button class="filter-btn" data-region="West">W</button>
+            <button class="filter-btn" data-region="South">S</button>
+            <button class="filter-btn" data-region="Midwest">MW</button>
+          </div>
+        </div>
+        <div class="team-list" id="team-list"></div>
+        <div class="panel-footer">
+          <div id="teams-summary" class="teams-summary"></div>
+        </div>
+      </aside>
+
+      <!-- Center: Auction -->
+      <main class="panel panel-auction">
+        <!-- Waiting State -->
+        <div id="auction-waiting" class="auction-state">
+          <div class="waiting-icon">&#9201;</div>
+          <h2>Waiting for Next Team</h2>
+          <p>The auctioneer will nominate a team to start bidding</p>
+          <div id="pot-display" class="pot-display">
+            <span class="pot-label">Total Pot</span>
+            <span id="pot-amount" class="pot-amount">$0</span>
+          </div>
+        </div>
+
+        <!-- Active Auction -->
+        <div id="auction-active" class="auction-state" style="display:none">
+          <div class="auction-team-info">
+            <span id="auction-seed" class="auction-seed"></span>
+            <h2 id="auction-team-name"></h2>
+            <span id="auction-region" class="auction-region"></span>
+          </div>
+
+          <div class="timer-ring" id="timer-ring">
+            <svg viewBox="0 0 120 120">
+              <circle class="timer-bg" cx="60" cy="60" r="54"/>
+              <circle class="timer-fg" cx="60" cy="60" r="54" id="timer-circle"/>
+            </svg>
+            <div class="timer-text" id="timer-text">15</div>
+          </div>
+
+          <div class="current-bid-display">
+            <div class="bid-label">Current Bid</div>
+            <div class="bid-amount" id="current-bid-amount">$0</div>
+            <div class="bid-leader" id="current-bid-leader">No bids yet</div>
+          </div>
+
+          <div class="bid-controls" id="bid-controls">
+            <div class="quick-bids" id="quick-bids"></div>
+            <div class="custom-bid-row">
+              <input type="number" id="custom-bid" placeholder="Custom $" min="1" step="1">
+              <button class="btn btn-primary" onclick="placeBid()">Bid</button>
+            </div>
+          </div>
+
+          <div class="bid-history">
+            <h4>Bid History</h4>
+            <div id="bid-history-list" class="bid-history-list"></div>
+          </div>
+        </div>
+
+        <!-- Sold State -->
+        <div id="auction-sold" class="auction-state" style="display:none">
+          <div class="sold-banner">SOLD!</div>
+          <h2 id="sold-team-name"></h2>
+          <div class="sold-details">
+            <span id="sold-winner" class="sold-winner"></span>
+            <span id="sold-amount" class="sold-amount"></span>
+          </div>
+        </div>
+
+        <!-- Paused State -->
+        <div id="auction-paused-overlay" class="paused-overlay" style="display:none">
+          <div class="paused-text">PAUSED</div>
+        </div>
+      </main>
+
+      <!-- Right: Participants -->
+      <aside class="panel panel-participants">
+        <div class="panel-header">
+          <h3>Participants</h3>
+          <span id="online-count" class="online-count">0 online</span>
+        </div>
+        <div id="participants-list" class="participants-list"></div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN MODAL ============ -->
+  <div id="admin-modal" class="modal" style="display:none">
+    <div class="modal-backdrop" onclick="toggleAdmin()"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>Admin Panel</h3>
+        <button class="modal-close" onclick="toggleAdmin()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="admin-tabs">
+          <button class="admin-tab active" onclick="showAdminTab('nominate')">Nominate</button>
+          <button class="admin-tab" onclick="showAdminTab('edit')">Edit Teams</button>
+          <button class="admin-tab" onclick="showAdminTab('import')">Import</button>
+          <button class="admin-tab" onclick="showAdminTab('settings')">Settings</button>
+        </div>
+
+        <!-- Nominate Tab -->
+        <div id="admin-nominate" class="admin-tab-content active">
+          <p class="admin-hint">Select an available team to start the auction</p>
+          <div class="admin-controls-row" id="nominate-controls" style="display:none">
+            <label>Starting Bid: $<input type="number" id="starting-bid" value="1" min="1" step="1"></label>
+            <button class="btn btn-primary" id="btn-nominate" onclick="nominateTeam()">Start Auction</button>
+          </div>
+          <div id="available-teams-list" class="available-teams-list"></div>
+          <div class="admin-actions-bar">
+            <button class="btn btn-warning" onclick="pauseAuction()">Pause</button>
+            <button class="btn btn-success" onclick="resumeAuction()">Resume</button>
+            <button class="btn btn-danger" onclick="skipAuction()">Cancel Current</button>
+          </div>
+        </div>
+
+        <!-- Edit Tab -->
+        <div id="admin-edit" class="admin-tab-content">
+          <div id="edit-teams-list" class="edit-teams-list"></div>
+        </div>
+
+        <!-- Import Tab -->
+        <div id="admin-import" class="admin-tab-content">
+          <p class="admin-hint">Paste teams, one per line: <code>Seed TeamName</code>, separated by region headers <code>[Region Name]</code></p>
+          <textarea id="import-textarea" rows="16" placeholder="[East]
+1 Duke
+2 Alabama
+3 Purdue
+...
+[West]
+1 Houston
+2 Tennessee
+..."></textarea>
+          <button class="btn btn-primary" onclick="importTeams()">Import Teams</button>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="admin-settings" class="admin-tab-content">
+          <div class="settings-form">
+            <label>
+              Timer Duration (seconds):
+              <input type="number" id="setting-timer" value="15" min="5" max="120">
+            </label>
+            <label>
+              Bid Increment ($):
+              <input type="number" id="setting-increment" value="1" min="1">
+            </label>
+            <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            <hr>
+            <button class="btn btn-danger" onclick="resetAll()">Reset All Auctions</button>
+            <p class="text-muted">This will clear all bids and ownership. Cannot be undone.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RESULTS MODAL ============ -->
+  <div id="results-modal" class="modal" style="display:none">
+    <div class="modal-backdrop" onclick="toggleResults()"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>Auction Results</h3>
+        <button class="modal-close" onclick="toggleResults()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="results-pot" class="results-pot"></div>
+        <table class="results-table" id="results-table">
+          <thead>
+            <tr>
+              <th>Seed</th>
+              <th>Team</th>
+              <th>Region</th>
+              <th>Owner</th>
+              <th>Price</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

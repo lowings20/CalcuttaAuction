@@ -1,0 +1,629 @@
+/* ================================================================
+   Calcutta Auction 2026 — Styles
+   ================================================================ */
+
+:root {
+  --bg-dark: #0f1117;
+  --bg-card: #1a1d2b;
+  --bg-card-hover: #22263a;
+  --bg-input: #13152080;
+  --border: #2a2e42;
+  --text: #e8eaf0;
+  --text-dim: #8b8fa3;
+  --text-muted: #5c6078;
+  --accent: #f59e0b;
+  --accent-hover: #d97706;
+  --accent-glow: rgba(245, 158, 11, 0.15);
+  --green: #22c55e;
+  --green-dim: rgba(34, 197, 94, 0.15);
+  --red: #ef4444;
+  --red-dim: rgba(239, 68, 68, 0.15);
+  --blue: #3b82f6;
+  --blue-dim: rgba(59, 130, 246, 0.15);
+  --sold: #6366f1;
+  --sold-dim: rgba(99, 102, 241, 0.15);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.view { display: none; }
+.view.active { display: flex; }
+
+/* ================================================================
+   LOGIN
+   ================================================================ */
+#login-view {
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: radial-gradient(ellipse at 50% 30%, #1e2240 0%, var(--bg-dark) 70%);
+}
+
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 40px;
+  width: 420px;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.logo-icon { font-size: 56px; margin-bottom: 12px; }
+.login-card h1 { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+.login-card .subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+
+#login-form { display: flex; flex-direction: column; gap: 12px; }
+
+input[type="text"], input[type="number"] {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 12px 16px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+input:focus { border-color: var(--accent); }
+
+.error-msg { color: var(--red); font-size: 13px; margin-top: 8px; min-height: 20px; }
+
+/* ================================================================
+   BUTTONS
+   ================================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 20px;
+  transition: all 0.15s;
+}
+.btn:active { transform: scale(0.97); }
+
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-lg { padding: 14px 28px; font-size: 16px; width: 100%; }
+.btn-sm { padding: 6px 14px; font-size: 13px; }
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.btn-outline:hover { border-color: var(--text-dim); color: var(--text); }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-warning { background: var(--accent); color: #000; }
+.btn-success { background: var(--green); color: #000; }
+
+/* ================================================================
+   TOP BAR
+   ================================================================ */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+.top-bar-left { display: flex; align-items: center; gap: 10px; }
+.logo-sm { font-size: 24px; }
+.top-bar h2 { font-size: 18px; font-weight: 700; }
+.top-bar .year { color: var(--accent); }
+.top-bar-right { display: flex; align-items: center; gap: 10px; }
+.user-badge {
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ================================================================
+   MAIN LAYOUT
+   ================================================================ */
+#main-view { flex-direction: column; min-height: 100vh; }
+
+.main-content {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  gap: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.panel-header h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); }
+
+.panel-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ================================================================
+   TEAMS PANEL
+   ================================================================ */
+.panel-teams {
+  border-right: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.team-filters { display: flex; gap: 4px; }
+.filter-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+.team-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.team-region-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  padding: 10px 8px 4px;
+}
+
+.team-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.team-item:hover { background: var(--bg-card-hover); }
+
+.team-seed {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--border);
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.team-name { flex: 1; font-weight: 500; }
+
+.team-status { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 3px; }
+.team-status.available { color: var(--green); background: var(--green-dim); }
+.team-status.active { color: var(--accent); background: var(--accent-glow); }
+.team-status.sold { color: var(--sold); background: var(--sold-dim); }
+
+.team-owner { font-size: 11px; color: var(--text-muted); }
+.team-price { font-size: 11px; color: var(--accent); font-weight: 600; }
+
+.teams-summary { font-size: 12px; color: var(--text-dim); text-align: center; }
+
+/* ================================================================
+   AUCTION PANEL (CENTER)
+   ================================================================ */
+.panel-auction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 24px;
+  overflow-y: auto;
+  background: radial-gradient(ellipse at 50% 40%, #151830 0%, var(--bg-dark) 70%);
+}
+
+.auction-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  max-width: 480px;
+}
+
+/* Waiting */
+.waiting-icon { font-size: 48px; opacity: 0.5; }
+#auction-waiting h2 { color: var(--text-dim); font-size: 22px; }
+#auction-waiting p { color: var(--text-muted); font-size: 14px; }
+
+.pot-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 20px;
+  padding: 24px 40px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.pot-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+.pot-amount { font-size: 42px; font-weight: 800; color: var(--accent); }
+
+/* Active */
+.auction-team-info { text-align: center; }
+.auction-seed {
+  display: inline-block;
+  background: var(--accent);
+  color: #000;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 2px 12px;
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+#auction-team-name { font-size: 32px; font-weight: 800; }
+.auction-region { color: var(--text-dim); font-size: 14px; }
+
+/* Timer Ring */
+.timer-ring { position: relative; width: 140px; height: 140px; margin: 10px 0; }
+.timer-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.timer-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+.timer-fg {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-dasharray: 339.292;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.9s linear, stroke 0.3s;
+}
+.timer-fg.urgent { stroke: var(--red); }
+.timer-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bid Display */
+.current-bid-display { text-align: center; }
+.bid-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+.bid-amount { font-size: 52px; font-weight: 800; color: var(--accent); line-height: 1.1; }
+.bid-leader { font-size: 16px; color: var(--text-dim); margin-top: 4px; }
+
+/* Bid Controls */
+.bid-controls { width: 100%; }
+.quick-bids { display: flex; gap: 8px; justify-content: center; margin-bottom: 10px; flex-wrap: wrap; }
+.quick-bids .btn { min-width: 80px; font-size: 15px; font-weight: 700; }
+.custom-bid-row { display: flex; gap: 8px; justify-content: center; }
+.custom-bid-row input { width: 130px; text-align: center; }
+
+/* Bid History */
+.bid-history { width: 100%; max-height: 180px; overflow-y: auto; }
+.bid-history h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 8px; }
+.bid-history-list { display: flex; flex-direction: column; gap: 4px; }
+.bid-entry {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.bid-entry:first-child { background: var(--accent-glow); border: 1px solid rgba(245,158,11,0.3); }
+.bid-entry-name { font-weight: 600; }
+.bid-entry-amount { color: var(--accent); font-weight: 700; }
+
+/* Sold */
+.sold-banner {
+  font-size: 56px;
+  font-weight: 900;
+  color: var(--green);
+  text-shadow: 0 0 40px rgba(34,197,94,0.4);
+  animation: soldPulse 0.6s ease-out;
+}
+@keyframes soldPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+#sold-team-name { font-size: 28px; font-weight: 700; }
+.sold-details { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.sold-winner { font-size: 20px; font-weight: 600; }
+.sold-amount { font-size: 36px; font-weight: 800; color: var(--accent); }
+
+/* Paused Overlay */
+.paused-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 17, 23, 0.8);
+  z-index: 10;
+}
+.paused-text {
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--accent);
+  letter-spacing: 8px;
+  animation: pauseBlink 1.2s infinite;
+}
+@keyframes pauseBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* ================================================================
+   PARTICIPANTS PANEL
+   ================================================================ */
+.panel-participants {
+  border-left: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.online-count { font-size: 12px; color: var(--green); }
+
+.participants-list { flex: 1; overflow-y: auto; padding: 8px; }
+
+.participant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  transition: background 0.15s;
+}
+.participant-item:hover { background: var(--bg-card-hover); }
+
+.participant-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.participant-info { flex: 1; min-width: 0; }
+.participant-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.participant-stats { font-size: 11px; color: var(--text-dim); }
+.participant-total { font-size: 15px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
+.participant-online .participant-avatar { box-shadow: 0 0 0 2px var(--green); }
+
+/* ================================================================
+   MODALS
+   ================================================================ */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+}
+.modal-content {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 600px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+.modal-lg { width: 800px; }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+}
+.modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+
+/* Admin Tabs */
+.admin-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+.admin-tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.admin-tab.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+.admin-tab-content { display: none; }
+.admin-tab-content.active { display: block; }
+
+.admin-hint { color: var(--text-dim); font-size: 13px; margin-bottom: 14px; }
+.admin-controls-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.admin-controls-row label { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.admin-controls-row input { width: 80px; padding: 6px 10px; font-size: 14px; }
+.admin-actions-bar { display: flex; gap: 8px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* Available teams for nomination */
+.available-teams-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }
+.available-team-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+  border: 2px solid transparent;
+}
+.available-team-row:hover { background: var(--bg-card-hover); }
+.available-team-row.selected { border-color: var(--accent); background: var(--accent-glow); }
+.available-team-row .team-seed { width: 22px; height: 22px; font-size: 10px; }
+
+/* Edit teams */
+.edit-teams-list { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
+.edit-team-row {
+  display: grid;
+  grid-template-columns: 60px 60px 1fr 80px;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+}
+.edit-team-row input, .edit-team-row select { padding: 6px 8px; font-size: 13px; }
+
+/* Import */
+#import-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 12px;
+  font-size: 13px;
+  font-family: monospace;
+  resize: vertical;
+  margin-bottom: 12px;
+}
+#import-textarea:focus { outline: none; border-color: var(--accent); }
+
+/* Settings */
+.settings-form { display: flex; flex-direction: column; gap: 16px; }
+.settings-form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--text-dim); }
+.settings-form input { width: 120px; }
+.settings-form hr { border: none; border-top: 1px solid var(--border); }
+.text-muted { font-size: 12px; color: var(--text-muted); }
+
+/* ================================================================
+   RESULTS TABLE
+   ================================================================ */
+.results-pot {
+  text-align: center;
+  padding: 20px;
+  margin-bottom: 20px;
+  background: var(--bg-dark);
+  border-radius: var(--radius);
+}
+.results-pot .pot-label { display: block; font-size: 12px; text-transform: uppercase; color: var(--text-dim); }
+.results-pot .pot-amount { font-size: 36px; font-weight: 800; color: var(--accent); }
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.results-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+}
+.results-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.results-table tr:hover { background: var(--bg-card-hover); }
+.results-table .sold-row td { color: var(--text); }
+.results-table .available-row td { color: var(--text-muted); }
+
+/* ================================================================
+   TOASTS
+   ================================================================ */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 20px;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  animation: toastIn 0.3s ease-out;
+  max-width: 320px;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid var(--blue); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ================================================================
+   SCROLLBAR
+   ================================================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ================================================================
+   RESPONSIVE
+   ================================================================ */
+@media (max-width: 900px) {
+  .main-content {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  .panel-teams { border-right: none; border-bottom: 1px solid var(--border); max-height: 200px; }
+  .panel-participants { border-left: none; border-top: 1px solid var(--border); max-height: 200px; }
+}
