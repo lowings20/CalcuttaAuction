@@ -99,6 +99,7 @@ let auction = {
   bidHistory: []
 };
 let auctionInterval = null;
+let chatMessages = [];
 
 // Connected users: socketId -> { id, name }
 const connectedUsers = new Map();
@@ -123,7 +124,8 @@ function getFullState() {
     auction,
     teams: getTeams(),
     participants: getUserTotals(),
-    onlineUsers: Array.from(connectedUsers.values())
+    onlineUsers: Array.from(connectedUsers.values()),
+    chat: chatMessages
   };
 }
 
@@ -359,6 +361,57 @@ io.on('connection', (socket) => {
     } catch (e) {
       if (callback) callback({ error: e.message });
     }
+  });
+
+  // --- Chat ---
+  socket.on('chat', ({ text }, callback) => {
+    const user = connectedUsers.get(socket.id);
+    if (!user) return;
+    if (!text || typeof text !== 'string' || text.trim().length === 0) return;
+
+    const message = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      userId: user.id,
+      userName: user.name,
+      text: text.trim().slice(0, 500),
+      time: Date.now()
+    };
+    chatMessages.push(message);
+    if (chatMessages.length > 100) chatMessages = chatMessages.slice(-100);
+    io.emit('state:sync', getFullState());
+    if (callback) callback({ success: true });
+  });
+
+  // --- Random Nominate ---
+  socket.on('random-nominate', ({ startingBid } = {}, callback) => {
+    if (auction.status === 'active' || auction.status === 'paused') {
+      return socket.emit('error:message', 'An auction is already in progress');
+    }
+    const allTeams = getTeams();
+    const available = allTeams.filter(t => t.status === 'available');
+    if (available.length === 0) {
+      return socket.emit('error:message', 'No teams remaining');
+    }
+
+    const pick = available[Math.floor(Math.random() * available.length)];
+    const start = Math.max(1, Number(startingBid) || 1);
+
+    db.prepare('UPDATE teams SET status = ? WHERE id = ?').run('active', pick.id);
+
+    auction.status = 'active';
+    auction.currentTeamId = pick.id;
+    auction.highBid = 0;
+    auction.highBidderId = null;
+    auction.highBidderName = '';
+    auction.bidHistory = [];
+
+    io.emit('auction:start', {
+      team: { ...pick, status: 'active' },
+      startingBid: start
+    });
+    startTimer();
+
+    if (callback) callback({ success: true, team: pick });
   });
 
   // --- Disconnect ---

@@ -66,6 +66,7 @@
           <div class="waiting-icon">&#9201;</div>
           <h2>Waiting for Next Team</h2>
           <p>The auctioneer will nominate a team to start bidding</p>
+          <button class="btn btn-primary btn-lg random-start-btn" onclick="randomNominate()" style="max-width:280px">Start Random Auction</button>
           <div id="pot-display" class="pot-display">
             <span class="pot-label">Total Pot</span>
             <span id="pot-amount" class="pot-amount">$0</span>
@@ -124,13 +125,30 @@
         </div>
       </main>
 
-      <!-- Right: Participants -->
-      <aside class="panel panel-participants">
-        <div class="panel-header">
-          <h3>Participants</h3>
-          <span id="online-count" class="online-count">0 online</span>
+      <!-- Right: Participants + Chat -->
+      <aside class="panel panel-right">
+        <div class="right-tabs">
+          <button class="right-tab active" onclick="switchRightTab('participants')">Participants</button>
+          <button class="right-tab" onclick="switchRightTab('chat')">Chat</button>
         </div>
-        <div id="participants-list" class="participants-list"></div>
+
+        <!-- Participants Tab -->
+        <div id="right-participants" class="right-tab-content active">
+          <div class="panel-header">
+            <h3>Participants</h3>
+            <span id="online-count" class="online-count">0 online</span>
+          </div>
+          <div id="participants-list" class="participants-list"></div>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="right-chat" class="right-tab-content" style="display:none">
+          <div class="chat-messages" id="chat-messages"></div>
+          <form class="chat-input-row" id="chat-form">
+            <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off" maxlength="500">
+            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+          </form>
+        </div>
       </aside>
     </div>
   </div>

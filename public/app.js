@@ -16,6 +16,9 @@ let clientTimerInterval = null;
 let prevAuctionStatus = 'waiting';
 let prevHighBid = 0;
 let serverTimeOffset = 0; // serverTime - clientTime
+let chatMessages = [];
+let lastChatCount = 0;
+let chatTabActive = false;
 
 // Palette for avatars
 const COLORS = [
@@ -142,6 +145,17 @@ function handleStateSync(state) {
   } else {
     auctionState = { status: 'waiting' };
     stopClientTimer();
+  }
+
+  // Chat
+  if (state.chat) {
+    const hadNew = state.chat.length > lastChatCount && lastChatCount > 0;
+    chatMessages = state.chat;
+    if (hadNew && !chatTabActive) {
+      showChatBadge(state.chat.length - lastChatCount);
+    }
+    lastChatCount = state.chat.length;
+    renderChat();
   }
 
   renderTeams();
@@ -577,6 +591,93 @@ function renderResults() {
       <td>${t.winning_bid ? '$' + t.winning_bid : '-'}</td>
     </tr>`
   ).join('');
+}
+
+// ================================================================
+// CHAT
+// ================================================================
+function switchRightTab(tab) {
+  document.querySelectorAll('.right-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.right-tab-content').forEach(t => { t.classList.remove('active'); t.style.display = 'none'; });
+  document.querySelector(`.right-tab[onclick*="${tab}"]`).classList.add('active');
+  const el = document.getElementById(`right-${tab}`);
+  el.classList.add('active');
+  el.style.display = 'flex';
+
+  chatTabActive = (tab === 'chat');
+  if (chatTabActive) {
+    clearChatBadge();
+    scrollChatToBottom();
+  }
+}
+
+function renderChat() {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 40;
+
+  container.innerHTML = chatMessages.map(m => {
+    const isMine = currentUser && m.userId === currentUser.id;
+    const time = new Date(m.time);
+    const ts = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const color = avatarColor(m.userName);
+    return `<div class="chat-msg ${isMine ? 'mine' : ''}">
+      <div class="chat-msg-header">
+        <span class="chat-msg-name" style="color:${color}">${escapeHtml(m.userName)}</span>
+        <span class="chat-msg-time">${ts}</span>
+      </div>
+      <div class="chat-msg-text">${escapeHtml(m.text)}</div>
+    </div>`;
+  }).join('');
+
+  if (wasAtBottom) scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById('chat-messages');
+  if (container) container.scrollTop = container.scrollHeight;
+}
+
+function showChatBadge(count) {
+  const tab = document.querySelector('.right-tab[onclick*="chat"]');
+  if (!tab) return;
+  let badge = tab.querySelector('.chat-unread-badge');
+  if (!badge) {
+    badge = document.createElement('span');
+    badge.className = 'chat-unread-badge';
+    tab.appendChild(badge);
+  }
+  badge.textContent = count > 9 ? '9+' : count;
+}
+
+function clearChatBadge() {
+  const badge = document.querySelector('.chat-unread-badge');
+  if (badge) badge.remove();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('chat-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  await api('chat', { text });
+});
+
+// ================================================================
+// RANDOM NOMINATE
+// ================================================================
+async function randomNominate() {
+  const res = await api('random-nominate', { startingBid: 1 });
+  if (res.success && res.team) {
+    toast(`Auctioning: #${res.team.seed} ${res.team.name} (${res.team.region})`, 'info');
+  }
 }
 
 // ================================================================
